@@ -18,20 +18,29 @@ import {
   FormControlLabel,
   Divider,
   alpha,
+  Grid,
+  Tooltip,
 } from "@mui/material"
 import { useRouter } from "next/router";
-export default function LoginPage() {
+export default function RegisterPage() {
   // State for form fields
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [rememberMe, setRememberMe] = useState(false)
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [agreeTerms, setAgreeTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState(0)
+  const [passwordMatch, setPasswordMatch] = useState(true)
   const router = useRouter();
   // Refs for animation elements
   const paperRef = useRef(null)
   const formRef = useRef(null)
-  
+  const containerRef = useRef(null)
+
   // Create a custom theme with enhanced colors
   const theme = createTheme({
     palette: {
@@ -47,7 +56,22 @@ export default function LoginPage() {
       },
       background: {
         default: "#0f172a",
-        paper: "rgba(255, 255, 255, 0.95)",
+        paper: "rgba(255, 255, 255, 0.97)",
+      },
+      success: {
+        main: "#10b981",
+        light: "#34d399",
+        dark: "#059669",
+      },
+      warning: {
+        main: "#f59e0b",
+        light: "#fbbf24",
+        dark: "#d97706",
+      },
+      error: {
+        main: "#ef4444",
+        light: "#f87171",
+        dark: "#dc2626",
       },
     },
     typography: {
@@ -110,16 +134,54 @@ export default function LoginPage() {
     },
   })
 
+  // Check password strength
+  useEffect(() => {
+    if (!password) {
+      setPasswordStrength(0)
+      return
+    }
+
+    let strength = 0
+    // Length check
+    if (password.length >= 8) strength += 1
+    // Contains uppercase
+    if (/[A-Z]/.test(password)) strength += 1
+    // Contains lowercase
+    if (/[a-z]/.test(password)) strength += 1
+    // Contains number
+    if (/[0-9]/.test(password)) strength += 1
+    // Contains special char
+    if (/[^A-Za-z0-9]/.test(password)) strength += 1
+
+    setPasswordStrength(strength)
+  }, [password])
+
+  // Check if passwords match
+  useEffect(() => {
+    if (confirmPassword && password !== confirmPassword) {
+      setPasswordMatch(false)
+    } else {
+      setPasswordMatch(true)
+    }
+  }, [password, confirmPassword])
+
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    if (password !== confirmPassword) {
+      // Handle password mismatch
+      console.error("Passwords don't match")
+      return
+    }
+
     setIsLoading(true)
 
     // Simulate API call
     setTimeout(() => {
-      console.log("Login attempt with:", { email, password, rememberMe })
+      console.log("Registration attempt with:", { firstName, lastName, email, password, agreeTerms })
       setIsLoading(false)
-      // Add your authentication logic here
+      // Add your registration logic here
     }, 1500)
   }
 
@@ -132,7 +194,7 @@ export default function LoginPage() {
     document.head.appendChild(fontLink)
 
     // Create animated background
-    const container = document.getElementById("login-container")
+    const container = document.getElementById("register-container")
     if (container) {
       // Clear any existing circles
       const existingCircles = container.querySelectorAll(".blur-circle")
@@ -191,7 +253,7 @@ export default function LoginPage() {
       }
 
       // Add floating particles
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 40; i++) {
         const particle = document.createElement("div")
         const size = Math.random() * 6 + 1
 
@@ -209,6 +271,28 @@ export default function LoginPage() {
         })
 
         container.appendChild(particle)
+      }
+
+      // Add stars
+      for (let i = 0; i < 20; i++) {
+        const star = document.createElement("div")
+        const size = Math.random() * 2 + 1
+        const duration = Math.random() * 3 + 2
+
+        Object.assign(star.style, {
+          position: "absolute",
+          width: `${size}px`,
+          height: `${size}px`,
+          backgroundColor: "rgba(255, 255, 255, 0.8)",
+          borderRadius: "50%",
+          zIndex: "0",
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          animation: `twinkle ${duration}s ease-in-out infinite`,
+          opacity: Math.random() * 0.7 + 0.3,
+        })
+
+        container.appendChild(star)
       }
 
       // Add keyframe animation for particles
@@ -252,6 +336,40 @@ export default function LoginPage() {
             box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
           }
         }
+        
+        @keyframes twinkle {
+          0%, 100% {
+            opacity: 0.3;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.3);
+          }
+        }
+        
+        @keyframes floatUp {
+          0% {
+            transform: translateY(20px);
+            opacity: 0;
+          }
+          100% {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        
+        @keyframes gradientMove {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
       `
       document.head.appendChild(style)
     }
@@ -268,30 +386,61 @@ export default function LoginPage() {
       }, 300)
     }
 
-    return () => {
-      // Cleanup
-      document.head.removeChild(fontLink)
+    // Add parallax effect on mouse move
+    if (containerRef.current) {
+      const handleMouseMove = (e) => {
+        const container = containerRef.current
+        if (!container) return
+
+        const { left, top, width, height } = container.getBoundingClientRect()
+        const x = (e.clientX - left) / width - 0.5
+        const y = (e.clientY - top) / height - 0.5
+
+        const circles = document.querySelectorAll(".blur-circle")
+        circles.forEach((circle, index) => {
+          const factor = (index + 1) * 10
+          circle.style.transform = `translate(calc(-50% + ${x * factor}px), calc(-50% + ${y * factor}px))`
+        })
+
+        if (paperRef.current) {
+          paperRef.current.style.transform = `translateY(0) perspective(1000px) rotateX(${y * 2}deg) rotateY(${-x * 2}deg)`
+        }
+      }
+
+      containerRef.current.addEventListener("mousemove", handleMouseMove)
+
+      return () => {
+        if (containerRef.current) {
+          containerRef.current.removeEventListener("mousemove", handleMouseMove)
+        }
+        // Cleanup
+        document.head.removeChild(fontLink)
+      }
     }
   }, [])
 
   return (
     <>
       <Head>
-        <title>FinanGroovy - Login</title>
-        <meta name="description" content="Login to FinanGroovy" />
+        <title>FinanGroovy - Criar Conta</title>
+        <meta name="description" content="Criar conta no FinanGroovy" />
       </Head>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Box
-          id="login-container"
+          id="register-container"
+          ref={containerRef}
           sx={{
             minHeight: "100vh",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)",
+            backgroundSize: "200% 200%",
+            animation: "gradientMove 15s ease infinite",
             position: "relative",
             overflow: "hidden",
+            perspective: "1000px",
             "& *": {
               boxSizing: "border-box",
             },
@@ -325,11 +474,15 @@ export default function LoginPage() {
                 p: { xs: 3, sm: 5 },
                 borderRadius: 4,
                 backdropFilter: "blur(20px)",
-                background: "rgba(255, 255, 255, 0.95)",
-                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+                background: "rgba(255, 255, 255, 0.97)",
+                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1) inset",
                 border: "1px solid rgba(255, 255, 255, 0.2)",
                 overflow: "hidden",
                 position: "relative",
+                transition: "transform 0.3s ease-out, box-shadow 0.3s ease-out",
+                "&:hover": {
+                  boxShadow: "0 15px 50px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.15) inset",
+                },
                 "&::before": {
                   content: '""',
                   position: "absolute",
@@ -375,9 +528,13 @@ export default function LoginPage() {
                       alignItems: "center",
                       justifyContent: "center",
                       background: "linear-gradient(135deg, #1e40af, #0ea5e9)",
-                      boxShadow: "0 4px 20px rgba(14, 165, 233, 0.3)",
+                      boxShadow: "0 4px 20px rgba(14, 165, 233, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.1) inset",
                       mr: 2,
                       animation: "pulse 2s infinite",
+                      transition: "transform 0.3s ease",
+                      "&:hover": {
+                        transform: "scale(1.05) rotate(5deg)",
+                      },
                     }}
                   >
                     {/* Trending Up Icon */}
@@ -406,6 +563,7 @@ export default function LoginPage() {
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                       textShadow: "0 2px 10px rgba(14, 165, 233, 0.2)",
+                      letterSpacing: "-0.5px",
                     }}
                   >
                     FinanGroovy
@@ -426,11 +584,11 @@ export default function LoginPage() {
                     },
                   }}
                 >
-                  Gerencie suas finanças com estilo
+                  Crie sua conta e comece a gerenciar suas finanças
                 </Typography>
               </Box>
 
-              {/* Login Form */}
+              {/* Registration Form */}
               <Box
                 component="form"
                 ref={formRef}
@@ -441,19 +599,119 @@ export default function LoginPage() {
                   },
                 }}
               >
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Nome"
+                      variant="outlined"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      sx={{
+                        animation: "slideUp 0.6s ease-out",
+                        "@keyframes slideUp": {
+                          "0%": { opacity: 0, transform: "translateY(20px)" },
+                          "100%": { opacity: 1, transform: "translateY(0)" },
+                        },
+                        "& .MuiOutlinedInput-root": {
+                          "&:hover fieldset": {
+                            borderColor: alpha(theme.palette.primary.main, 0.8),
+                          },
+                          "&.Mui-focused fieldset": {
+                            borderColor: theme.palette.primary.main,
+                            borderWidth: "2px",
+                          },
+                          transition: "transform 0.2s ease",
+                          "&:focus-within": {
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 4px 10px rgba(0, 0, 0, 0.07)",
+                          },
+                        },
+                      }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            {/* User Icon */}
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke={theme.palette.primary.main}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                              <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Sobrenome"
+                      variant="outlined"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      sx={{
+                        animation: "slideUp 0.7s ease-out",
+                        "& .MuiOutlinedInput-root": {
+                          "&:hover fieldset": {
+                            borderColor: alpha(theme.palette.primary.main, 0.8),
+                          },
+                          "&.Mui-focused fieldset": {
+                            borderColor: theme.palette.primary.main,
+                            borderWidth: "2px",
+                          },
+                          transition: "transform 0.2s ease",
+                          "&:focus-within": {
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 4px 10px rgba(0, 0, 0, 0.07)",
+                          },
+                        },
+                      }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            {/* User Icon */}
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke={theme.palette.primary.main}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                              <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+
                 <TextField
                   fullWidth
                   label="Email"
+                  type="email"
                   variant="outlined"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   sx={{
-                    animation: "slideUp 0.6s ease-out",
-                    "@keyframes slideUp": {
-                      "0%": { opacity: 0, transform: "translateY(20px)" },
-                      "100%": { opacity: 1, transform: "translateY(0)" },
-                    },
+                    animation: "slideUp 0.8s ease-out",
                     "& .MuiOutlinedInput-root": {
                       "&:hover fieldset": {
                         borderColor: alpha(theme.palette.primary.main, 0.8),
@@ -462,12 +720,17 @@ export default function LoginPage() {
                         borderColor: theme.palette.primary.main,
                         borderWidth: "2px",
                       },
+                      transition: "transform 0.2s ease",
+                      "&:focus-within": {
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 4px 10px rgba(0, 0, 0, 0.07)",
+                      },
                     },
                   }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        {/* User Icon */}
+                        {/* Mail Icon */}
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="20"
@@ -479,8 +742,8 @@ export default function LoginPage() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         >
-                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                          <circle cx="12" cy="7" r="4"></circle>
+                          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
                         </svg>
                       </InputAdornment>
                     ),
@@ -496,7 +759,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   sx={{
-                    animation: "slideUp 0.8s ease-out",
+                    animation: "slideUp 0.9s ease-out",
                     "& .MuiOutlinedInput-root": {
                       "&:hover fieldset": {
                         borderColor: alpha(theme.palette.primary.main, 0.8),
@@ -504,6 +767,11 @@ export default function LoginPage() {
                       "&.Mui-focused fieldset": {
                         borderColor: theme.palette.primary.main,
                         borderWidth: "2px",
+                      },
+                      transition: "transform 0.2s ease",
+                      "&:focus-within": {
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 4px 10px rgba(0, 0, 0, 0.07)",
                       },
                     },
                   }}
@@ -534,9 +802,10 @@ export default function LoginPage() {
                           edge="end"
                           sx={{
                             color: theme.palette.primary.main,
-                            transition: "transform 0.2s",
+                            transition: "transform 0.2s, color 0.2s",
                             "&:hover": {
                               transform: "scale(1.1)",
+                              color: theme.palette.primary.dark,
                             },
                           }}
                         >
@@ -581,48 +850,340 @@ export default function LoginPage() {
                   }}
                 />
 
+                {/* Password strength indicator */}
+                {password && (
+                  <Box
+                    sx={{
+                      mb: 2,
+                      mt: -1.5,
+                      animation: "fadeIn 0.5s ease-out",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
+                      <Typography variant="caption" sx={{ color: "text.secondary", mr: 1 }}>
+                        Força da senha:
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 0.5, flexGrow: 1 }}>
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <Box
+                            key={level}
+                            sx={{
+                              height: 4,
+                              borderRadius: 2,
+                              flexGrow: 1,
+                              bgcolor:
+                                passwordStrength >= level
+                                  ? level <= 2
+                                    ? theme.palette.error.main
+                                    : level <= 3
+                                      ? theme.palette.warning.main
+                                      : theme.palette.success.main
+                                  : "rgba(0,0,0,0.1)",
+                              transition: "background-color 0.3s, transform 0.2s",
+                              transform: passwordStrength >= level ? "scaleY(1.2)" : "scaleY(1)",
+                            }}
+                          />
+                        ))}
+                      </Box>
+                      <Tooltip
+                        title={
+                          <Box sx={{ p: 1 }}>
+                            <Typography variant="caption" component="div">
+                              Senha forte deve conter:
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              component="div"
+                              sx={{ display: "flex", alignItems: "center", mt: 0.5 }}
+                            >
+                              <Box
+                                component="span"
+                                sx={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  bgcolor: /[A-Z]/.test(password) ? "success.main" : "error.main",
+                                  mr: 1,
+                                }}
+                              />
+                              Letra maiúscula
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              component="div"
+                              sx={{ display: "flex", alignItems: "center" }}
+                            >
+                              <Box
+                                component="span"
+                                sx={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  bgcolor: /[a-z]/.test(password) ? "success.main" : "error.main",
+                                  mr: 1,
+                                }}
+                              />
+                              Letra minúscula
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              component="div"
+                              sx={{ display: "flex", alignItems: "center" }}
+                            >
+                              <Box
+                                component="span"
+                                sx={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  bgcolor: /[0-9]/.test(password) ? "success.main" : "error.main",
+                                  mr: 1,
+                                }}
+                              />
+                              Número
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              component="div"
+                              sx={{ display: "flex", alignItems: "center" }}
+                            >
+                              <Box
+                                component="span"
+                                sx={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  bgcolor: /[^A-Za-z0-9]/.test(password) ? "success.main" : "error.main",
+                                  mr: 1,
+                                }}
+                              />
+                              Caractere especial
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              component="div"
+                              sx={{ display: "flex", alignItems: "center" }}
+                            >
+                              <Box
+                                component="span"
+                                sx={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  bgcolor: password.length >= 8 ? "success.main" : "error.main",
+                                  mr: 1,
+                                }}
+                              />
+                              Mínimo 8 caracteres
+                            </Typography>
+                          </Box>
+                        }
+                        arrow
+                      >
+                        <IconButton size="small" sx={{ ml: 0.5, color: "text.secondary" }}>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                          </svg>
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color:
+                          passwordStrength <= 2
+                            ? theme.palette.error.main
+                            : passwordStrength <= 3
+                              ? theme.palette.warning.main
+                              : theme.palette.success.main,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {passwordStrength <= 2 ? "Senha fraca" : passwordStrength <= 3 ? "Senha média" : "Senha forte"}
+                    </Typography>
+                  </Box>
+                )}
+
+                <TextField
+                  fullWidth
+                  label="Confirmar Senha"
+                  type={showConfirmPassword ? "text" : "password"}
+                  variant="outlined"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  error={!passwordMatch && confirmPassword.length > 0}
+                  helperText={!passwordMatch && confirmPassword.length > 0 ? "As senhas não coincidem" : ""}
+                  sx={{
+                    animation: "slideUp 1s ease-out",
+                    "& .MuiOutlinedInput-root": {
+                      "&:hover fieldset": {
+                        borderColor: alpha(theme.palette.primary.main, 0.8),
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: theme.palette.primary.main,
+                        borderWidth: "2px",
+                      },
+                      transition: "transform 0.2s ease",
+                      "&:focus-within": {
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 4px 10px rgba(0, 0, 0, 0.07)",
+                      },
+                    },
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        {/* Shield Icon */}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke={theme.palette.primary.main}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          edge="end"
+                          sx={{
+                            color: theme.palette.primary.main,
+                            transition: "transform 0.2s, color 0.2s",
+                            "&:hover": {
+                              transform: "scale(1.1)",
+                              color: theme.palette.primary.dark,
+                            },
+                          }}
+                        >
+                          {showConfirmPassword ? (
+                            // Eye Off Icon
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                              <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                              <line x1="2" x2="22" y1="2" y2="22"></line>
+                            </svg>
+                          ) : (
+                            // Eye Icon
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
                 <Box
                   sx={{
                     display: "flex",
-                    justifyContent: "space-between",
                     alignItems: "center",
                     mb: 3,
-                    animation: "slideUp 1s ease-out",
+                    animation: "slideUp 1.1s ease-out",
                   }}
                 >
                   <FormControlLabel
                     control={
                       <Checkbox
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
+                        checked={agreeTerms}
+                        onChange={(e) => setAgreeTerms(e.target.checked)}
                         sx={{
                           color: theme.palette.primary.main,
                           "&.Mui-checked": {
                             color: theme.palette.primary.main,
                           },
+                          "& .MuiSvgIcon-root": {
+                            transition: "transform 0.2s ease",
+                          },
+                          "&:hover .MuiSvgIcon-root": {
+                            transform: "scale(1.1)",
+                          },
                         }}
+                        required
                       />
                     }
                     label={
                       <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        Lembrar-me
+                        Eu concordo com os{" "}
+                        <Button
+                          variant="text"
+                          size="small"
+                          sx={{
+                            p: 0,
+                            minWidth: "auto",
+                            fontWeight: 600,
+                            color: theme.palette.primary.main,
+                            "&:hover": {
+                              background: "transparent",
+                              textDecoration: "underline",
+                            },
+                          }}
+                        >
+                          Termos de Serviço
+                        </Button>{" "}
+                        e{" "}
+                        <Button
+                          variant="text"
+                          size="small"
+                          sx={{
+                            p: 0,
+                            minWidth: "auto",
+                            fontWeight: 600,
+                            color: theme.palette.primary.main,
+                            "&:hover": {
+                              background: "transparent",
+                              textDecoration: "underline",
+                            },
+                          }}
+                        >
+                          Política de Privacidade
+                        </Button>
                       </Typography>
                     }
                   />
-                  <Button
-                    variant="text"
-                    size="small"
-                    sx={{
-                      color: theme.palette.primary.main,
-                      fontWeight: 500,
-                      "&:hover": {
-                        background: "transparent",
-                        textDecoration: "underline",
-                      },
-                    }}
-                  >
-                    Esqueceu a senha?
-                  </Button>
                 </Box>
 
                 <Button
@@ -630,12 +1191,13 @@ export default function LoginPage() {
                   fullWidth
                   variant="contained"
                   size="large"
-                  disabled={isLoading}
+                  disabled={isLoading || !agreeTerms || !passwordMatch}
                   sx={{
                     mt: 1,
                     mb: 3,
                     py: 1.5,
                     background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    backgroundSize: "200% 100%",
                     borderRadius: 2,
                     fontWeight: 600,
                     fontSize: "1rem",
@@ -656,6 +1218,7 @@ export default function LoginPage() {
                     "&:hover": {
                       transform: "translateY(-3px)",
                       boxShadow: "0 7px 14px rgba(14, 165, 233, 0.3)",
+                      backgroundPosition: "right center",
                       "&::before": {
                         left: "100%",
                       },
@@ -699,10 +1262,10 @@ export default function LoginPage() {
                           },
                         }}
                       />
-                      Entrando...
+                      Criando conta...
                     </Box>
                   ) : (
-                    "Entrar"
+                    "Criar Conta"
                   )}
                 </Button>
 
@@ -732,9 +1295,12 @@ export default function LoginPage() {
                       p: 0,
                       borderColor: "rgba(0, 0, 0, 0.12)",
                       color: "#4285F4",
+                      transition: "all 0.3s ease",
                       "&:hover": {
                         borderColor: "#4285F4",
                         background: "rgba(66, 133, 244, 0.04)",
+                        transform: "translateY(-3px)",
+                        boxShadow: "0 4px 8px rgba(66, 133, 244, 0.2)",
                       },
                     }}
                   >
@@ -768,9 +1334,12 @@ export default function LoginPage() {
                       p: 0,
                       borderColor: "rgba(0, 0, 0, 0.12)",
                       color: "#1877F2",
+                      transition: "all 0.3s ease",
                       "&:hover": {
                         borderColor: "#1877F2",
                         background: "rgba(24, 119, 242, 0.04)",
+                        transform: "translateY(-3px)",
+                        boxShadow: "0 4px 8px rgba(24, 119, 242, 0.2)",
                       },
                     }}
                   >
@@ -792,9 +1361,12 @@ export default function LoginPage() {
                       p: 0,
                       borderColor: "rgba(0, 0, 0, 0.12)",
                       color: "#000000",
+                      transition: "all 0.3s ease",
                       "&:hover": {
                         borderColor: "#000000",
                         background: "rgba(0, 0, 0, 0.04)",
+                        transform: "translateY(-3px)",
+                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
                       },
                     }}
                   >
@@ -815,26 +1387,28 @@ export default function LoginPage() {
                     animation: "fadeIn 2s ease-out",
                   }}
                 >
-                 <Typography variant="body2" sx={{ color: "text.secondary", mr: 0.5 }}>
-  Não tem uma conta?
-</Typography>
-<Button
-  variant="text"
-  size="small"
-  onClick={() => router.push("/cadastro/cadastro_page")}
-  sx={{
-    color: theme.palette.primary.main,
-    fontWeight: 600,
-    p: 0,
-    minWidth: "auto",
-    "&:hover": {
-      background: "transparent",
-      textDecoration: "underline",
-    },
-  }}
->
-  Criar conta
-</Button>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mr: 0.5 }}>
+                    Já tem uma conta?
+                  </Typography>
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={() => router.push("/")}
+                    sx={{
+                      color: theme.palette.primary.main,
+                      fontWeight: 600,
+                      p: 0,
+                      minWidth: "auto",
+                      transition: "all 0.2s ease",
+                      "&:hover": {
+                        background: "transparent",
+                        textDecoration: "underline",
+                        transform: "translateY(-1px)",
+                      },
+                    }}
+                  >
+                    Entrar
+                  </Button>
                 </Box>
               </Box>
             </Paper>
